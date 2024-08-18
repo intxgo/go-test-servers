@@ -1,10 +1,15 @@
 package main
 
 import (
-	"go-test-servers/cmd"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
+
+	"go-test-servers/config"
+	"go-test-servers/servers"
+
+	"gopkg.in/yaml.v3"
 )
 
 func main() {
@@ -18,5 +23,33 @@ func main() {
 		}
 	}()
 
-	cmd.Execute()
+	yamlFile, err := os.ReadFile("config.yaml")
+	if err != nil {
+		panic(err)
+	}
+
+	config := config.Config{}
+	err = yaml.Unmarshal(yamlFile, &config)
+	if err != nil {
+		panic(err)
+	}
+
+	if config.Socks5.Enabled {
+		fmt.Println("Starting SOCKS5 Server")
+		go servers.RunSocksServer(config.Socks5)
+	}
+
+	if config.TcpSocket.Enabled {
+		fmt.Println("Starting Socket Server")
+		go servers.RunTcpSocketServer(config.TcpSocket)
+	}
+
+	if config.SslSocket.Enabled {
+		fmt.Println("Starting SSL Server")
+		go servers.RunSslSocketServer(config.SslSocket)
+	}
+
+	//wait forever
+	fmt.Println("Waiting forever")
+	select {}
 }

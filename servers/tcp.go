@@ -1,29 +1,13 @@
-package cmd
+package servers
 
 import (
 	"encoding/hex"
 	"fmt"
 	"log"
 	"net"
-	"os"
 
-	"github.com/spf13/cobra"
+	"go-test-servers/config"
 )
-
-func CheckPathFlagAndEnsureExists(cmd *cobra.Command, flag string) string {
-	value, err := cmd.Flags().GetString(flag)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if value == "" {
-		log.Fatalf("Flag %s is required", flag)
-	}
-	if _, err := os.Stat(value); os.IsNotExist(err) {
-		log.Fatalf("File %s does not exist", value)
-	}
-	return value
-}
-
 
 func HandleSocketConnection(conn net.Conn) {
 	defer func () {
@@ -51,4 +35,21 @@ func HandleSocketConnection(conn net.Conn) {
 		return
 	}
 	log.Printf("Echoed %d bytes back to %s:", bytesWritten, conn.RemoteAddr())
+}
+
+func RunTcpSocketServer(config config.TcpSocketConfig) {
+	address := fmt.Sprintf("%s:%d", config.Host, config.Port)	
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Tcp Server Listening on %s", address)
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Fatal(err)
+		}
+		go HandleSocketConnection(conn)
+	}
 }

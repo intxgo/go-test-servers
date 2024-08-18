@@ -1,0 +1,20 @@
+socks5:
+  enabled: true
+  host: 127.0.0.1
+  port: 5000
+  username: "user"
+  password: "password"
+  protocol: "tcp"
+
+socket:
+  enabled: true
+  host: 127.0.0.1
+  port: 5001
+
+ssl-socket:
+  enabled: false
+  host: 127.0.0.1
+  port: 5002
+  certfile: "cert.pem"
+  keyfile: "key.pem"
+  cafile: "ca.pem"
