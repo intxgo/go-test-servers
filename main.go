@@ -28,28 +28,43 @@ func main() {
 		panic(err)
 	}
 
-	config := config.Config{}
-	err = yaml.Unmarshal(yamlFile, &config)
+	serverConfig := config.Config{}
+	err = yaml.Unmarshal(yamlFile, &serverConfig)
 	if err != nil {
 		panic(err)
 	}
 
-	if config.Socks5.Enabled {
-		fmt.Println("Starting SOCKS5 Server")
-		go servers.RunSocksServer(config.Socks5)
-	}
+	// Start the servers
+	log.Println("Server Count : ", len(serverConfig.Servers))
+	for _, server := range serverConfig.Servers {
+		if !server.Enabled {
+			log.Printf("Server is disabled in the config, skipping:  %s\n", server.Type)
+			continue
+		}
 
-	if config.TcpSocket.Enabled {
-		fmt.Println("Starting Socket Server")
-		go servers.RunTcpSocketServer(config.TcpSocket)
-	}
+		fmt.Println() // place a new line between each server's startup for readability
+		status := make(chan bool)
+		log.Printf("Attempting to start %s\n", server.Type)
+		switch server.Type {
+		case config.Socket:
+			go servers.RunTcpSocketServer(server, status)
+		case config.Socks5:
+			go servers.RunSocksServer(server, status)
+		case config.Ssl:
+			go servers.RunSslSocketServer(server, status)
+		default:
+			log.Printf("Unknown server type: %s\n", server.Type)
+		}
 
-	if config.SslSocket.Enabled {
-		fmt.Println("Starting SSL Server")
-		go servers.RunSslSocketServer(config.SslSocket)
+		if <-status {
+			log.Printf("Started %s server\n", server.Type)
+		} else {
+			log.Printf("Failed to start %s server\n", server.Type)
+		}
+		fmt.Println()
 	}
 
 	//wait forever
-	fmt.Println("Waiting forever")
+	log.Println("Waiting, press Ctrl+C to exit")
 	select {}
 }

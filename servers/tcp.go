@@ -37,14 +37,17 @@ func HandleSocketConnection(conn net.Conn) {
 	log.Printf("Echoed %d bytes back to %s:", bytesWritten, conn.RemoteAddr())
 }
 
-func RunTcpSocketServer(config config.TcpSocketConfig) {
+func RunTcpSocketServer(config config.ServerConfig, status chan bool) {
 	address := fmt.Sprintf("%s:%d", config.Host, config.Port)	
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		status <- false
+		return
 	}
-	log.Printf("Tcp Server Listening on %s", address)
 
+	log.Printf("%s Listening on %s", config.Type, address)
+	status <- true
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
