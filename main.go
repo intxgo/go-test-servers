@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -11,6 +12,44 @@ import (
 
 	"gopkg.in/yaml.v3"
 )
+
+type StartServerFunc func(config.ServerConfig, chan bool)
+
+func StartServer(config config.ServerConfig, serverFunc StartServerFunc) {
+	status := make(chan bool)
+	fmt.Println()
+	log.Printf("Attempting to start %s server\n", config.Type)
+	go serverFunc(config, status)
+	if <-status {
+		log.Printf("Started %s server\n", config.Type)
+	} else {
+		log.Printf("Failed to start %s server\n", config.Type)
+	}
+	fmt.Println()
+}
+
+func ReadConfig(configPath *string) config.Config {
+	if *configPath == "" {
+		log.Fatal("No config file specified")
+	}
+
+	if _, err := os.Stat(*configPath); os.IsNotExist(err) {
+		log.Fatalf("Config file not found: %s", *configPath)
+	}
+
+	yamlFile, err := os.ReadFile(*configPath)
+	if err != nil {
+		log.Fatalf("Failed to read config file: %s, err: %v", *configPath, err)
+	}
+
+	serverConfig := config.Config{}
+	err = yaml.Unmarshal(yamlFile, &serverConfig)
+	if err != nil {
+		log.Fatalf("Failed to unmarshal config file: %s, err: %v", *configPath, err)
+	}
+
+	return serverConfig
+}
 
 func main() {
 	// Handle SIGINT
@@ -23,45 +62,31 @@ func main() {
 		}
 	}()
 
-	yamlFile, err := os.ReadFile("config.yaml")
-	if err != nil {
-		panic(err)
-	}
+	configPath := flag.String("config", "config.yaml", "path to the config file")
+	flag.Parse()
 
-	serverConfig := config.Config{}
-	err = yaml.Unmarshal(yamlFile, &serverConfig)
-	if err != nil {
-		panic(err)
-	}
-
+	serverConfig := ReadConfig(configPath)
 	// Start the servers
-	log.Println("Server Count : ", len(serverConfig.Servers))
+	if len(serverConfig.Servers) == 0 {
+		log.Println("No servers defined in the config")
+		os.Exit(1)
+	}
+
 	for _, server := range serverConfig.Servers {
 		if !server.Enabled {
 			log.Printf("Server is disabled in the config, skipping:  %s\n", server.Type)
 			continue
 		}
-
-		fmt.Println() // place a new line between each server's startup for readability
-		status := make(chan bool)
-		log.Printf("Attempting to start %s\n", server.Type)
 		switch server.Type {
 		case config.Socket:
-			go servers.RunTcpSocketServer(server, status)
+			StartServer(server, servers.RunTcpSocketServer)
 		case config.Socks5:
-			go servers.RunSocksServer(server, status)
+			StartServer(server, servers.RunSocksServer)
 		case config.Ssl:
-			go servers.RunSslSocketServer(server, status)
+			StartServer(server, servers.RunSslSocketServer)
 		default:
 			log.Printf("Unknown server type: %s\n", server.Type)
 		}
-
-		if <-status {
-			log.Printf("Started %s server\n", server.Type)
-		} else {
-			log.Printf("Failed to start %s server\n", server.Type)
-		}
-		fmt.Println()
 	}
 
 	//wait forever
