@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 
 	"go-test-servers/config"
 	"go-test-servers/servers"
@@ -61,6 +62,13 @@ func main() {
 			os.Exit(1)
 		}
 	}()
+
+	ex, err := os.Executable()
+	if err != nil {
+		log.Fatal(err)
+	}
+	thisDir := filepath.Dir(ex)
+	os.Chdir(thisDir)
 
 	configPath := flag.String("config", "config.yaml", "path to the config file")
 	flag.Parse()
