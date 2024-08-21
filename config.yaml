@@ -11,6 +11,7 @@ servers:
     enabled: true
     host: 127.0.0.1
     port: 5001
+    handler: "echo"
 
   - type: "ssl-socket"
     enabled: true
@@ -19,3 +20,4 @@ servers:
     certfile: "cert.pem"
     keyfile: "key.pem"
     cafile: "ca.pem"
+    handler: "echo"
