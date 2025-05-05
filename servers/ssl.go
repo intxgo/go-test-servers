@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
 	"go-test-servers/config"
@@ -16,7 +17,7 @@ func FileExists(filename string) bool {
 	return err == nil
 }
 
-func RunSslSocketServer(cfg config.ServerConfig, status chan bool) {
+func RunTlsServer(cfg config.ServerConfig, status chan bool) {
 	//
 	// Parse the cert and key pair
 	//
@@ -94,8 +95,9 @@ func RunSslSocketServer(cfg config.ServerConfig, status chan bool) {
 		return
 	}
 
-	cipherSuites := make([]uint16, len(cfg.CipherSuites))
+	var cipherSuites []uint16 = nil
 	if cfg.CipherSuites != nil {
+		cipherSuites = make([]uint16, len(cfg.CipherSuites))
 		for i, cipher := range cfg.CipherSuites {
 			cipherSuites[i], err = config.ParseCipherSuite(cipher)
 			if err != nil {
@@ -115,6 +117,31 @@ func RunSslSocketServer(cfg config.ServerConfig, status chan bool) {
 	}
 
 	address := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
+
+	// Check if the server type is HTTPS
+	if cfg.Type == "https" {
+		server := &http.Server{
+			Addr:      address,
+			TLSConfig: tlsConfig,
+			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintf(w, "Hello from HTTPS server!\n")
+			}),
+			// Disable HTTP/2, otherwise it will be used by default and will require TLS 1.3
+			TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
+		}
+
+		log.Printf("Starting HTTPS server on %s:%d", cfg.Host, cfg.Port)
+		status <- true
+		err := server.ListenAndServeTLS("", "")
+		if err != nil {
+			log.Printf("Failed to start HTTPS server: %v", err)
+			status <- false
+		}
+		return
+	}
+
+	// else start a TLS echo server
+
 	listener, err := tls.Listen("tcp", address, tlsConfig)
 	if err != nil {
 		log.Println(err)

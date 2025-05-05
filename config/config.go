@@ -14,6 +14,7 @@ const (
 	Socket ServerType = "socket"
 	Socks5 ServerType = "socks5"
 	Ssl    ServerType = "ssl-socket"
+	Https  ServerType = "https"
 
 	Echo HandlerType = "echo"
 )

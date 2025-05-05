@@ -32,3 +32,18 @@ servers:
       - "TLS_RSA_WITH_AES_128_CBC_SHA"
       - "TLS_RSA_WITH_AES_256_CBC_SHA"
       - "TLS_RSA_WITH_AES_128_GCM_SHA256"
+
+  - type: "https"
+    enabled: true
+    host: 127.0.0.1
+    port: 5003
+    certfile: "server-chain.pem"
+    keyfile: "server-key.pem"
+    cafile: "ca.pem"
+    minTlsVersion: "TLSv1.0"
+    maxTlsVersion: "TLSv1.2"
+    # Optional: Specify the cipher suites to use (applies only to TLSv1.2 or earlier)
+    cipherSuites:
+      - "TLS_RSA_WITH_AES_128_CBC_SHA"
+      - "TLS_RSA_WITH_AES_256_CBC_SHA"
+      - "TLS_RSA_WITH_AES_128_GCM_SHA256"
