@@ -54,7 +54,7 @@ func RunSslSocketServer(cfg config.ServerConfig, status chan bool) {
 		return
 	}
 
-	if (cfg.Ca != "") {
+	if cfg.Ca != "" {
 		log.Printf("Attempting to add CA Cert: %s", cfg.Ca)
 		ca_pem, err := os.ReadFile(cfg.Ca)
 		if err != nil {
@@ -70,9 +70,48 @@ func RunSslSocketServer(cfg config.ServerConfig, status chan bool) {
 		}
 	}
 
+	var minTlsVersion uint16 = tls.VersionTLS10
+	if cfg.MinTlsVersion != "" {
+		minTlsVersion, err = config.ParseTlsVersion(cfg.MinTlsVersion)
+		if err != nil {
+			log.Printf("Failed to parse min TLS version: %s", cfg.MinTlsVersion)
+			status <- false
+			return
+		}
+	}
+	var maxTlsVersion uint16 = tls.VersionTLS13
+	if cfg.MaxTlsVersion != "" {
+		maxTlsVersion, err = config.ParseTlsVersion(cfg.MaxTlsVersion)
+		if err != nil {
+			log.Printf("Failed to parse max TLS version: %s", cfg.MaxTlsVersion)
+			status <- false
+			return
+		}
+	}
+	if minTlsVersion > maxTlsVersion {
+		log.Printf("Min TLS version cannot be greater than max TLS version")
+		status <- false
+		return
+	}
+
+	cipherSuites := make([]uint16, len(cfg.CipherSuites))
+	if cfg.CipherSuites != nil {
+		for i, cipher := range cfg.CipherSuites {
+			cipherSuites[i], err = config.ParseCipherSuite(cipher)
+			if err != nil {
+				log.Printf("Failed to parse cipher suite: %s", cipher)
+				status <- false
+				return
+			}
+		}
+	}
+
 	tlsConfig := &tls.Config{
-		RootCAs : rootCAs,
+		RootCAs:      rootCAs,
 		Certificates: []tls.Certificate{pair},
+		MinVersion:   minTlsVersion,
+		MaxVersion:   maxTlsVersion,
+		CipherSuites: cipherSuites,
 	}
 
 	address := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
@@ -90,9 +129,8 @@ func RunSslSocketServer(cfg config.ServerConfig, status chan bool) {
 		connHandler = handlers.EchoHandler
 	default:
 		log.Printf("Unknown handler type %s, using echo handler", cfg.HandlerType)
-		connHandler= handlers.EchoHandler
+		connHandler = handlers.EchoHandler
 	}
-
 
 	log.Printf("%s Listening on %s", cfg.Type, address)
 	status <- true
