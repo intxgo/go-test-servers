@@ -31,7 +31,7 @@ func main() {
 	os.Chdir(thisDir)
 
 	configPath := flag.String("config", "config.yaml", "path to the config file")
-	generateCertificates := flag.String("make_cert", "", "certificate type to generate (RSA, ECDSA)")
+	generateCertificates := flag.String("make_cert", "", "generate certificate [RSA, ECDSA]")
 
 	flag.Parse()
 
@@ -45,6 +45,7 @@ func main() {
 			log.Fatalf("Error generating certificates: %v", err)
 		}
 		log.Printf("Certificates generated successfully")
+		os.Exit(0)
 	}
 
 	serverConfig := config.Config{}
