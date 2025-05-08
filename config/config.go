@@ -38,6 +38,7 @@ type ServerConfig struct {
 	MinTlsVersion string   `yaml:"minTlsVersion"`
 	MaxTlsVersion string   `yaml:"maxTlsVersion"`
 	CipherSuites  []string `yaml:"cipherSuites"`
+	CurveTypes    []string `yaml:"curveTypes"`
 }
 
 type Config struct {

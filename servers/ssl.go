@@ -108,12 +108,26 @@ func RunTlsServer(cfg config.ServerConfig, status chan bool) {
 		}
 	}
 
+	var curveTypes []tls.CurveID = nil
+	if cfg.CurveTypes != nil {
+		curveTypes = make([]tls.CurveID, len(cfg.CurveTypes))
+		for i, curve := range cfg.CurveTypes {
+			curveTypes[i], err = config.ParseCurveType(curve)
+			if err != nil {
+				log.Printf("Failed to parse curve type: %s", curve)
+				status <- false
+				return
+			}
+		}
+	}
+
 	tlsConfig := &tls.Config{
-		RootCAs:      rootCAs,
-		Certificates: []tls.Certificate{pair},
-		MinVersion:   minTlsVersion,
-		MaxVersion:   maxTlsVersion,
-		CipherSuites: cipherSuites,
+		RootCAs:          rootCAs,
+		Certificates:     []tls.Certificate{pair},
+		MinVersion:       minTlsVersion,
+		MaxVersion:       maxTlsVersion,
+		CipherSuites:     cipherSuites,
+		CurvePreferences: curveTypes,
 	}
 
 	address := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)

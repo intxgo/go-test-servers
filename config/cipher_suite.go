@@ -38,3 +38,18 @@ func ParseCipherSuite(cipher string) (uint16, error) {
 		return 0, fmt.Errorf("unsupported cipher suite: %s", cipher)
 	}
 }
+
+func ParseCurveType(curveType string) (tls.CurveID, error) {
+	switch curveType {
+	case "P256":
+		return tls.CurveP256, nil
+	case "P384":
+		return tls.CurveP384, nil
+	case "P521":
+		return tls.CurveP521, nil
+	case "X25519":
+		return tls.X25519, nil
+	default:
+		return 0, fmt.Errorf("unsupported curve type: %s", curveType)
+	}
+}
